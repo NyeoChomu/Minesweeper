@@ -292,9 +292,7 @@ var Button = {
     },
     remove:function(){
         for (var i = 0; i < len; ++i){
-            for (var j = 0; j < len; ++j){
-                buttonArr[i][j].remove();
-            }
+            document.getElementById("d"+i).remove();
         }
     },
 }
