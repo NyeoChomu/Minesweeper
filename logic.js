@@ -1,187 +1,322 @@
-var lenY = 21;
-var lenX = 21;
+window.oncontextmenu=function() {
+    return false;
+}
+var gamestart = false;
 var MapInfo;
-var Stack = {
-    "top":0,
-    setArr:function(size){
-        Stack.stackArr = new Array(size);
+var len = 9;
+var mine = 0;
+var flag = 0;
+var buttonArr;
+function IsOverRange(x, y, i, j) {
+    return (x + i < 0) || (x + i >= len) || (y + j < 0) || (y + j >= len);
+}
+var CircularQueue = {
+    "front":0,
+    "back":0,
+    "count":0,
+    SetQueue:function(size){
+        CircularQueue.QueueArr = new Array(size);
     },
-    push:function(data){
-        if (Stack.top + 1 < Stack.stackArr.length){
-            Stack.stackArr[Stack.top] = data;
-            ++Stack.top;
+    Enqueue:function(insert){
+        if (CircularQueue.count < CircularQueue.QueueArr.length){
+            CircularQueue.QueueArr[CircularQueue.front] = insert;
+            CircularQueue.count += 1;
+
+            if (CircularQueue.front + 1 === CircularQueue.QueueArr.length){
+                CircularQueue.front = 0;
+            }
+            else {
+                CircularQueue.front += 1;
+            }
         }
         else {
-            console.log("스택이 가득 참");
+            console.log("큐가 가득 참");
         }
     },
-    pop:function(){
-        if (Stack.top > 0) {
-            --Stack.top;
-            return (Stack.stackArr[Stack.top]);
+    Dequeue:function(){
+        if (CircularQueue.count > 0){
+            var output = CircularQueue.QueueArr[CircularQueue.back];
+            CircularQueue.count -= 1;
+            if (CircularQueue.back + 1 === CircularQueue.QueueArr.length){
+                CircularQueue.back = 0;
+            }
+            else {
+                CircularQueue.back += 1;
+            }
+            return output;
         }
         else {
-            console.log("스택이 비었음");
+            console.log("큐가 비어있음");
         }
     },
 }
 var Code = {
-    SetMap:function(){
-        MapInfo = new Array(lenY);
-        for (var i = 0; i < lenY; ++i){
-            MapInfo[i] = new Array(lenX);
-            for (var j = 0; j < lenX; ++j){
-                if (i % 2 != 0 && j % 2 != 0){
-                    MapInfo[i][j] = [-1,0];
+    SetSize:function(){
+        var num = parseInt(prompt("플레이 할 맵의 크기를 입력해주세요 ( 가로폭 ) : "));
+        len = num;
+    },
+    CreateArray:function (){
+        MapInfo = new Array(len);
+        for (var i = 0; i < len; ++i){
+            MapInfo[i] = new Array(len);
+            for (var j = 0; j < len; ++j){
+                MapInfo[i][j] = [0, false, false];
+                // [지뢰 개수, 깃발 유무, 오픈 유무]
+            }
+        }
+    },
+    CreateMap:function(mine, exception){
+        for (var i = 0; i < mine; ++i){
+            var locate = this.Random(len-1, exception);
+            MapInfo[locate[1]][locate[0]][0] = -1;
+        }
+        for (var i = 0; i < len; ++i){
+            for (var j = 0; j < len; ++j){
+                if (MapInfo[i][j][0] === -1){
+                    continue;
                 }
-                else {
-                    MapInfo[i][j] = [1,0];
+                var cnt = 0;
+                for (var k = -1; k <= 1; ++k){
+                    for (var l = -1; l <= 1; ++l){
+                        if (k === 0 && l === 0){
+                            continue;
+                        }
+                        if (IsOverRange(j,i, l,k)){
+                            continue;
+                        }
+                        if (MapInfo[i+k][j+l][0] === -1){
+                            ++cnt;
+                        }
+                    }
+                }
+                MapInfo[i][j][0]= cnt;
+            }
+        }
+    },
+    Random:function(max, exception){
+        var num = new Array(2);
+        while (true){
+            num[0] = Math.floor(Math.random() * max + 1);
+            num[1] = Math.floor(Math.random() * max + 1);
+            var tempX = (num[0] - exception[0])**2;
+            var tempY = (num[1] - exception[1])**2;
+            if (tempX <= 1 && tempY <= 1) {
+                continue;
+            }
+            else if (MapInfo[num[1]][num[0]][0] === -1) {
+                continue;
+            }
+            else {
+                break;
+            }
+        }
+        return num;
+    },
+    SetFlag:function(nowX, nowY){
+        if (MapInfo[nowY][nowX][1]) {
+            MapInfo[nowY][nowX][1] = false;
+            MapInfo[nowY][nowX][2] = false;
+            --flag;
+        }
+        else if (!MapInfo[nowY][nowX][2]) {
+            ++flag;
+            MapInfo[nowY][nowX][1] = true;
+            MapInfo[nowY][nowX][2] = true;
+        }
+    },
+    CheckFlag:function(nowX, nowY){
+        var cnt = 0;
+        for (var i = -1; i <= 1; ++i){
+            for (var j = -1; j <= 1; ++j){
+                if (i === 0 && j === 0){
+                    continue;
+                }
+                if (IsOverRange(nowX, nowY, j, i)){
+                    continue;
+                }
+                if (MapInfo[nowY + i][nowX + j][1]){
+                    ++cnt;
+                }
+            }
+        }
+        return cnt;
+    },
+    Open:function(nowX, nowY){
+        if (MapInfo[nowY][nowX][0] === -1){
+            Button.finish();
+            alert("Game Over");
+        }
+        CircularQueue.Enqueue([nowX, nowY]);
+        while (CircularQueue.count > 0){
+            pos = CircularQueue.Dequeue();
+            MapInfo[pos[1]][pos[0]][2] = true;
+            if (MapInfo[pos[1]][pos[0]][0] === 0){
+                for (var i = -1; i <= 1; ++i){
+                    for (var j = -1; j <= 1; ++j){
+                        if (i === 0 && j === 0){
+                            continue;
+                        }
+                        if (IsOverRange(pos[0], pos[1], j, i)){
+                            continue;
+                        }
+                        if (MapInfo[pos[1]+i][pos[0]+j][2]){
+                            continue;
+                        }
+                        CircularQueue.Enqueue([pos[0]+j, pos[1]+i])
+                    }
                 }
             }
         }
     },
-    CreateMaze:function(){
-        var nowX = 1;
-        var nowY = 1;
-        Stack.push([nowY,nowX]);
-        Maker : while (Stack.top > 0) {
-            MapInfo[nowY][nowX][0] = 0;
-            var direction = Code.shuffle([[0,-1],[0,1],[-1,0],[1,0]])
-            Checker : for (var i = 0; i < 4; ++i){
-                if (Code.IsOverRange(nowY,direction[i][0]*2,nowX,direction[i][1]*2)){
-                    continue Checker;
-                }
-                else if (MapInfo[nowY+direction[i][0]*2][nowX+direction[i][1]*2][0] === 0){
-                    continue Checker;
-                }
-                else {
-                    MapInfo[nowY+direction[i][0]][nowX+direction[i][1]][0] = 0;
-                    Stack.push([nowY+direction[i][0]*2,nowX+direction[i][1]*2]);
-                    nowY += direction[i][0]*2;
-                    nowX += direction[i][1]*2;
-                    continue Maker;
-                }
-            }
-            [nowY, nowX] = Stack.pop();
-        }
-        MapInfo[1][1][1] = 1;
-        MapInfo[lenY-2][lenX-1][0] = 2;
-    },
-    Move:function(targetY, targetX) {
-        if (MapInfo[targetY][targetX][0] === 1) {
-            return;
-        }
-        var nowY = -1;
-        var nowX = -1;
-        Finder : for (var i = 1; i < (lenY-1); ++i){
-            for (var j = 1; j < (lenX-1); ++j){
-                if (j === 21){
-                    console.log(j);
-                }
-                if (MapInfo[i][j][1] === 1){
-                    [nowY, nowX] = [i, j];
-                    break Finder;
+    around:function(nowX, nowY){
+        if (MapInfo[nowY][nowX][0] === this.CheckFlag(nowX, nowY)){
+            for (var i = -1; i <= 1; ++i){
+                for (var j = -1; j <= 1; ++j){
+                    if (i === 0 && j === 0){
+                        continue;
+                    }
+                    if (IsOverRange(nowX, nowY, j, i)){
+                        continue;
+                    }
+                    if (MapInfo[nowY+i][nowX+j][2]){
+                        continue;
+                    }
+                    this.Open(nowX+j, nowY+i);
                 }
             }
         }
-        if (nowY === -1){
-            return;
-        }
-        if (nowY === targetY) {
-            for (var i = nowX; i != targetX; targetX > nowX ? ++i : --i){
-                if (MapInfo[nowY][i][0] === 1){
-                    return;
+    },
+    isClear:function(){
+        for (var i = 0; i < len; ++i){
+            for (var j = 0; j < len; ++j){
+                if (!MapInfo[i][j][2] && MapInfo[i][j][0] != -1){
+                    return false;
                 }
             }
         }
-        else if (nowX === targetX) {
-            for (var i = nowY; i != targetY; targetY > nowY ? ++i : --i){
-                if (MapInfo[i][nowX][0] === 1){
-                    return;
-                }
-            }
-        }
-        else {
-            return;
-        }
-        MapInfo[nowY][nowX][1] = 0;
-        MapInfo[targetY][targetX][1] = 1;
-    },
-    IsGoal() {
-        return MapInfo[lenY-2][lenX-1][1] === 1;
-    },
-    shuffle:function(array) {
-        for (let i = array.length - 1; i > 0; i--) {
-              // 무작위로 index 값 생성 (0 이상 i 미만)
-          let j = Math.floor(Math.random() * (i + 1));
-          [array[i], array[j]] = [array[j], array[i]];
-        }
-        return array
-    },
-    IsOverRange:function(y1,y2,x1,x2){
-        return y1 + y2 < 0 || y1 + y2 >= lenY || x1 + x2 < 0 || x1 + x2 >= lenX;
+        return true;
     }
 }
 var Button = {
-    CreateButton:function(){
-        for (var i = 0; i < lenY; ++i){
-            var row = document.createElement("div");
-            row.setAttribute("id", "d"+i)
-            document.getElementById("table").appendChild(row);
-            for (var j = 0; j < lenX; ++j){
-                var block = document.createElement("button");
+    SetArray:function(){
+        buttonArr = new Array(len);
+        for (var i = 0; i < len; ++i){
+            buttonArr[i] = new Array(len);
+        }
+    },
+    Create:function(){
+        for (var i = 0; i < len; ++i){
+            var d = document.createElement("div");
+            d.setAttribute("id", "d"+i)
+            document.querySelector("#table").appendChild(d);
+            for (var j = 0; j < len; ++j){
+                var b = document.createElement("button");
+                buttonArr[i][j] = b;
+                b.addEventListener('mousedown', function() {
+                    if ((event.button === 2) || (event.which === 3)){
+                        Button.RightClick(this);
+                    }
+                })
+                b.innerHTML = "<br>";
+                b.style.backgroundColor = "rgb(200,200,200)";
+                b.setAttribute("id", i + '-' + j);
+                b.setAttribute("class", "comp");
+                b.setAttribute("onclick", "Button.Click(this)")
+                document.querySelector("#d"+i).appendChild(b);
+            }
+        }
+    },
+    Render:function() {
+        for (var i = 0; i < len; ++i){
+            for (var j = 0; j < len; ++j){
+                var block = buttonArr[i][j];
+                block.style.backgroundColor = "rgb(200,200,200)";
                 block.innerHTML = "<br>";
-                block.style.backgroundColor = "white";
-                if (MapInfo[i][j][0] === 1){
-                    block.style.backgroundColor = "black";
-                }
-                else if (MapInfo[i][j][0] === 2) {
-                    block.style.backgroundColor = "green";
-                }
-                block.setAttribute("id", i + '-' + j);
-                block.setAttribute("class", "comp");
-                block.setAttribute("onclick", "Button.Click(this)")
-                row.appendChild(block);
-            }
-        }
-    },
-    Render:function(){
-        for (var i = 0; i < lenY; ++i){
-            for (var j = 0; j < lenX; ++j){
-                var block = document.getElementById(i+"-"+j);
-                if (MapInfo[i][j][0] === 0){
+                if (MapInfo[i][j][2]){
+                    
                     block.style.backgroundColor = "white";
+                    if (MapInfo[i][j][0] != 0){
+                        block.innerText = MapInfo[i][j][0];
+                    }
+                    if (MapInfo[i][j][0] === -1){
+                        block.innerText = 'M';
+                        block.style.backgroundColor = "red";
+                    }
                 }
-                else{
-                    block.style.backgroundColor = "black";
-                }
-                
-                if (MapInfo[i][j][0] === 2) {
+                if (MapInfo[i][j][1]){
+                    block.innerText = 'V';
                     block.style.backgroundColor = "green";
-                }
-                
-                if (MapInfo[i][j][1] === 1) {
-                    block.style.backgroundColor = "red";
                 }
             }
         }
+        text.minesUpdate();
     },
-    Click(self){
-        var pos = self.getAttribute("id").split('-');
-        Code.Move(Number(pos[0]), Number(pos[1]));
+    Click:function(self){
+        var temp = self.getAttribute("id");
+        var nowX = temp[2] - '0';
+        var nowY = temp[0] - '0';
+        console.log("X : ", nowX, "Y : ", nowY);
+        if (!gamestart){
+            gamestart = true;
+            setting(nowX, nowY);
+        }
+        if (MapInfo[nowY][nowX][2]){
+            Code.around(nowX, nowY);
+        }
+        else {
+            Code.Open(nowX, nowY);
+        }
         Button.Render();
-        if (Code.IsGoal()){
-            alert("Game Clear!");
+        if(Code.isClear()){
+            Button.finish();
+            alert("Game Clear")
+        }
+    },
+    RightClick:function(self){
+        var temp = self.getAttribute("id");
+        var nowX = temp[2] - '0';
+        var nowY = temp[0] - '0';
+        Code.SetFlag(nowX, nowY);
+        Button.Render();
+        if(Code.isClear()){
+            Button.finish();
+            alert("Game Clear")
+        }
+    },
+    finish:function(){
+        for (var i = 0; i < len; ++i){
+            for (var j = 0; j < len; ++j){
+                buttonArr[i][j].removeAttribute("onclick");
+            }
+        }
+    },
+    remove:function(){
+        for (var i = 0; i < len; ++i){
+            for (var j = 0; j < len; ++j){
+                buttonArr[i][j].remove();
+            }
         }
     },
 }
-function setting(){
-    [lenX, lenY] = prompt("미로 크기를 입력하세요 : (x) * (y)").split("*");
-    lenX = lenX*2+1;
-    lenY = lenY*2+1;
-    Stack.setArr(lenY*lenX);
-    Code.SetMap();
-    Code.CreateMaze();
-    Button.CreateButton();
-    Button.Render();
+var text = {
+    minesUpdate(){
+        minesTx = document.getElementById("mines");
+        minesTx.innerText = "Mines : " + (mine - flag);
+    },
+}
+function setting(nowX, nowY){
+    Code.CreateArray();
+    Code.CreateMap(mine, [nowX, nowY]);
+    CircularQueue.SetQueue(len**2);
+}
+function start(){
+    Code.SetSize();
+    Button.SetArray();
+    Button.Create();
+
+    gamestart = false;
+    mine = parseInt((len**2)/6);
+    flag = 0;
+
+    text.minesUpdate();
 }

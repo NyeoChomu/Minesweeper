@@ -2,18 +2,24 @@
 <html>
 <head>
     <meta charset="UTF-8">
-    <title>Maze</title>
-    <link href="style.css" rel="stylesheet">
+    <title>Minesweeper</title>
+    <link rel="stylesheet" href="style.css">
     <script src="logic.js"></script>
 </head>
 <body>
-    <div>
-        <h1>Maze</h1>
+    <div id="title" style="text-align: center;">
+        <h1>Minesweeper</h1>
+        <h3 id="mines">Mines : 0<h3>
+        <input id="restart" type="button" value="Restart" onclick="
+            Button.remove();
+            start();
+            ">
+        
     </div>
-    <div id="table">
+    <div id="table" style="text-align: center;">
+        <script>
+            start();
+        </script>
     </div>
-    <script>
-        setting();
-    </script>
 </body>
 </html>
