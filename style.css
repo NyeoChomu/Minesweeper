@@ -1,22 +1,17 @@
-.comp {
-    font-size: 20px;
-    width: 50px;
-    height: 50px;
-    padding: 0px;
-    border: 2px solid black;
-    margin: 0px;
+h1 {
+    font-size: 100px;
 }
-#title {
-    height: 200 px;
-    padding: 10px;
+div {
+    text-align: center;
+}
+.comp {
+    height: 200px;
+    width: 200px;
+    padding: 0px;
     border: 0px;
     margin: 0px;
 }
-#restart {
-    font-size: 20px;
-    width: 100px;
-    height: 50px;
-    padding: 0px;
-    border: 2px solid black;
-    margin: 10px;
+#table {
+    overflow: hiddlen;
+    white-space: nowrap;
 }
